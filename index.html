@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRI · Release I - Invariant Information Decomposition</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --paper:#f6f3ec;
+  --paper-deep:#efe9db;
+  --ink:#1c1a16;
+  --ink-soft:#4a463d;
+  --rule:#d8d0bd;
+  --rule-strong:#b8ac8e;
+  --accent:#8a3b2e;      /* terracotta-ink, used sparingly */
+  --accent-2:#2e5246;    /* deep moss, for the invariant/variant pair */
+  --accent-2-soft:#e7ede9;
+  --accent-soft:#f1e3dd;
+  --mono:'JetBrains Mono', monospace;
+  --serif: 'Source Serif 4', Georgia, serif;
+  --display: 'Newsreader', 'Source Serif 4', serif;
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:17px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+
+::selection{ background:var(--accent-soft); color:var(--ink); }
+
+/* ---------- layout shell ---------- */
+.sheet{
+  max-width:840px;
+  margin:0 auto;
+  padding:0 48px 120px;
+}
+@media (max-width:640px){
+  .sheet{ padding:0 22px 80px; }
+  body{ font-size:16px; }
+}
+
+/* ---------- top bar ---------- */
+.topbar{
+  border-bottom:1px solid var(--rule-strong);
+  background:var(--paper-deep);
+}
+.topbar-inner{
+  max-width:840px;
+  margin:0 auto;
+  padding:14px 48px;
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+@media (max-width:640px){ .topbar-inner{ padding:12px 22px; } }
+
+/* ---------- masthead / hero ---------- */
+.masthead{
+  padding:72px 0 40px;
+  border-bottom:3px double var(--rule-strong);
+}
+.eyebrow{
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:18px;
+}
+h1.title{
+  font-family:var(--display);
+  font-weight:600;
+  font-size:clamp(34px,5.6vw,52px);
+  line-height:1.08;
+  margin:0 0 10px;
+  letter-spacing:-0.01em;
+  color:var(--ink);
+}
+h1.title .sub{
+  display:block;
+  font-style:italic;
+  font-weight:400;
+  font-size:0.62em;
+  color:var(--ink-soft);
+  margin-top:8px;
+}
+.release-tag{
+  margin-top:26px;
+  font-family:var(--mono);
+  font-size:13px;
+  color:var(--ink-soft);
+  display:flex;
+  gap:28px;
+  flex-wrap:wrap;
+}
+.release-tag span b{ color:var(--ink); font-weight:600; }
+
+/* ---------- abstract ---------- */
+.abstract{
+  margin-top:38px;
+  padding:28px 32px;
+  background:var(--paper-deep);
+  border-left:3px solid var(--accent);
+}
+.abstract h2{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 14px;
+}
+.abstract p{ margin:0 0 12px; color:var(--ink-soft); }
+.abstract p:last-child{ margin-bottom:0; }
+blockquote.callout{
+  margin:16px 0;
+  padding:14px 20px;
+  border-left:2px solid var(--ink);
+  font-style:italic;
+  color:var(--ink);
+  background:rgba(0,0,0,0.02);
+}
+
+/* ---------- table of contents ---------- */
+.toc{
+  margin-top:44px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px 32px;
+}
+@media (max-width:560px){ .toc{ grid-template-columns:1fr; } }
+.toc a{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:9px 0;
+  border-bottom:1px dotted var(--rule-strong);
+  color:var(--ink);
+  text-decoration:none;
+  font-size:14.5px;
+}
+.toc a .n{
+  font-family:var(--mono);
+  color:var(--ink-soft);
+  font-size:12px;
+  flex-shrink:0;
+}
+.toc a:hover{ color:var(--accent); }
+
+/* ---------- sections ---------- */
+section.sec{
+  padding-top:64px;
+  border-top:1px solid var(--rule);
+}
+section.sec:first-of-type{ border-top:none; }
+.sec-head{
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  margin-bottom:28px;
+}
+.sec-num{
+  font-family:var(--mono);
+  font-size:13px;
+  color:var(--accent);
+  letter-spacing:.04em;
+  flex-shrink:0;
+}
+h2.sec-title{
+  font-family:var(--display);
+  font-weight:600;
+  font-size:clamp(24px,3.4vw,30px);
+  margin:0;
+  color:var(--ink);
+}
+h3{
+  font-family:var(--display);
+  font-weight:600;
+  font-size:19px;
+  margin:30px 0 12px;
+  color:var(--ink);
+}
+p{ margin:0 0 16px; color:var(--ink-soft); }
+strong{ color:var(--ink); font-weight:600; }
+em{ color:var(--ink); }
+
+/* ---------- definitions / theorem blocks ---------- */
+.box{
+  margin:22px 0;
+  padding:22px 26px;
+  background:#fff;
+  border:1px solid var(--rule-strong);
+  position:relative;
+}
+.box::before{
+  content:attr(data-label);
+  position:absolute;
+  top:-11px;
+  left:22px;
+  background:var(--paper);
+  padding:0 10px;
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+.box p:last-child{ margin-bottom:0; }
+.box.theorem{ border-color:var(--accent-2); }
+.box.theorem::before{ color:var(--accent-2); }
+
+/* numbered results inside theorem */
+ol.results{
+  margin:8px 0 0;
+  padding-left:0;
+  list-style:none;
+  counter-reset:res;
+}
+ol.results li{
+  counter-increment:res;
+  margin:14px 0;
+  padding-left:38px;
+  position:relative;
+}
+ol.results li::before{
+  content:counter(res);
+  position:absolute;
+  left:0; top:1px;
+  width:24px; height:24px;
+  border:1px solid var(--accent-2);
+  color:var(--accent-2);
+  font-family:var(--mono);
+  font-size:12px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+}
+ol.results li b{ display:block; color:var(--ink); font-weight:600; margin-bottom:2px; }
+
+/* ---------- math display ---------- */
+.eq{
+  margin:18px 0;
+  padding:16px 0;
+  text-align:center;
+  overflow-x:auto;
+}
+
+/* ---------- variable list ---------- */
+.varlist{
+  list-style:none;
+  margin:14px 0 20px;
+  padding:0;
+  display:grid;
+  gap:8px;
+}
+.varlist li{
+  font-family:var(--mono);
+  font-size:14.5px;
+  color:var(--ink-soft);
+  display:flex;
+  gap:14px;
+}
+.varlist li .sym{ color:var(--ink); min-width:54px; }
+
+/* ---------- limitations table ---------- */
+table.compare{
+  width:100%;
+  border-collapse:collapse;
+  margin:18px 0 8px;
+  font-size:14.5px;
+}
+table.compare th, table.compare td{
+  text-align:left;
+  padding:11px 14px;
+  border-bottom:1px solid var(--rule);
+}
+table.compare th{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  font-weight:500;
+  border-bottom:2px solid var(--rule-strong);
+}
+table.compare td:first-child{ color:var(--ink); font-weight:600; }
+table.compare tr:last-child td{ border-bottom:none; }
+
+/* ---------- decomposition diagram (signature element) ---------- */
+.diagram{
+  margin:32px 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+}
+.diagram .node{
+  font-family:var(--mono);
+  font-size:13px;
+  padding:12px 22px;
+  border:1px solid var(--rule-strong);
+  background:#fff;
+  color:var(--ink);
+  text-align:center;
+}
+.diagram .arrow{
+  font-family:var(--mono);
+  color:var(--ink-soft);
+  font-size:13px;
+  padding:6px 0;
+}
+.diagram .split{
+  display:flex;
+  gap:18px;
+  margin-top:4px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.diagram .split .node.invariant{ border-color:var(--accent-2); color:var(--accent-2); background:var(--accent-2-soft); }
+.diagram .split .node.variant{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+
+/* ---------- figures ---------- */
+figure.fig{
+  margin:30px 0;
+  padding:24px 20px 18px;
+  background:#fff;
+  border:1px solid var(--rule-strong);
+}
+figure.fig svg{ width:100%; height:auto; display:block; }
+figure.fig svg.icon-arrow{ width:28px; height:34px; margin:0 auto; }
+figure.fig figcaption{
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px dotted var(--rule-strong);
+  font-family:var(--mono);
+  font-size:12.5px;
+  line-height:1.6;
+  color:var(--ink-soft);
+}
+figure.fig figcaption::before{ content:none; }
+
+/* ---------- illustrative example cards ---------- */
+.examples{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+  margin:20px 0;
+}
+@media (max-width:600px){ .examples{ grid-template-columns:1fr; } }
+.excard{
+  border:1px solid var(--rule-strong);
+  background:#fff;
+  padding:20px;
+}
+.excard h4{
+  margin:0 0 12px;
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--accent-2);
+}
+.excard .row{
+  display:flex;
+  justify-content:space-between;
+  font-size:13.5px;
+  padding:7px 0;
+  border-bottom:1px dotted var(--rule);
+  color:var(--ink-soft);
+}
+.excard .row:last-child{ border-bottom:none; }
+.excard .row b{ color:var(--ink); font-weight:600; }
+.excard svg{ width:100%; height:auto; display:block; margin-bottom:10px; }
+.excard .exnote{ font-size:13.5px; color:var(--ink-soft); margin:0; line-height:1.55; }
+.excard .exnote strong{ color:var(--ink); }
+
+/* ---------- traditional vs TRI comparison figure ---------- */
+.compare-fig{ padding:30px 24px 18px; }
+.compare-row{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  text-align:center;
+}
+.compare-label{
+  font-family:var(--mono);
+  font-size:11.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.compare-equal{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.rep-chip{
+  font-family:var(--mono);
+  font-size:13px;
+  padding:9px 18px;
+  border:1px solid var(--rule-strong);
+  background:var(--paper-deep);
+  color:var(--ink);
+}
+.eq-sign{
+  font-family:var(--display);
+  font-size:22px;
+  color:var(--ink-soft);
+}
+.compare-arrow{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  margin:18px 0;
+}
+.compare-split{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+  margin-top:6px;
+}
+@media (max-width:560px){ .compare-split{ grid-template-columns:1fr; } }
+.rep-card{
+  border:1px solid var(--rule-strong);
+  background:#fff;
+  padding:18px 20px;
+}
+.rep-card h5{
+  margin:0 0 12px;
+  font-family:var(--display);
+  font-weight:600;
+  font-size:15.5px;
+  color:var(--ink);
+}
+ul.checklist{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  gap:9px;
+}
+ul.checklist li{
+  font-family:var(--mono);
+  font-size:13.5px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--ink-soft);
+}
+ul.checklist li::before{
+  font-family:var(--mono);
+  font-size:13px;
+  width:18px;
+  text-align:center;
+  flex-shrink:0;
+}
+ul.checklist li.yes::before{ content:"✓"; color:var(--accent-2); }
+ul.checklist li.no::before{ content:"✗"; color:var(--accent); }
+ul.checklist li.yes{ color:var(--ink); }
+
+/* ---------- roadmap chips ---------- */
+.roadmap{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:18px 0 6px;
+}
+.roadmap .chip{
+  font-family:var(--mono);
+  font-size:12.5px;
+  padding:8px 14px;
+  border:1px solid var(--rule-strong);
+  background:#fff;
+  color:var(--ink-soft);
+}
+
+/* ---------- conclusion / closing ---------- */
+.closing{
+  margin-top:64px;
+  padding:40px 36px;
+  background:var(--ink);
+  color:var(--paper);
+}
+.closing .eyebrow2{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#cdbfa0;
+  margin-bottom:16px;
+}
+.closing blockquote{
+  font-family:var(--display);
+  font-style:italic;
+  font-size:21px;
+  line-height:1.5;
+  margin:0 0 18px;
+  color:#f6f3ec;
+}
+.closing p{ color:#cfc9bc; margin:0 0 12px; }
+.closing p:last-child{ margin-bottom:0; }
+
+/* ---------- footer ---------- */
+footer{
+  margin-top:48px;
+  padding-top:24px;
+  border-top:1px solid var(--rule);
+  font-family:var(--mono);
+  font-size:11.5px;
+  color:var(--ink-soft);
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+/* ---------- back to top ---------- */
+.totop{
+  position:fixed;
+  bottom:24px; right:24px;
+  width:42px; height:42px;
+  border-radius:50%;
+  background:var(--ink);
+  color:var(--paper);
+  display:flex; align-items:center; justify-content:center;
+  text-decoration:none;
+  font-family:var(--mono);
+  font-size:16px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .25s ease, transform .25s ease;
+  box-shadow:0 4px 14px rgba(0,0,0,0.25);
+}
+.totop.show{ opacity:1; pointer-events:auto; }
+.totop:hover{ transform:translateY(-2px); }
+
+@media print{
+  .topbar, .totop{ display:none; }
+  body{ background:#fff; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <span>TRI - Theory of Representation Invariants</span>
+    <span>Release I </span>
+  </div>
+</div>
+
+<div class="sheet">
+
+  <header class="masthead" id="top">
+    <div class="eyebrow">Theoretical Machine Learning &nbsp;·&nbsp; Representation Theory</div>
+    <h1 class="title">
+      What Has a Neural Representation Actually Learned?
+      <span class="sub">A Theory of Representation Invariants (TRI) - Release I: Invariant Information Decomposition</span>
+    </h1>
+    <div class="release-tag">
+      <span><b>Status</b> Foundational release</span>
+      <span><b>Scope</b> Invariant / variant decomposition</span>
+      <span><b>Series</b> I of N</span>
+    </div>
+
+    <div class="abstract">
+      <h2>Abstract</h2>
+      <p>Modern representation learning has produced highly effective models across vision, language, and multimodal domains. Yet one question remains unresolved:</p>
+      <blockquote class="callout">Given a trained encoder, what invariant information has it actually learned, and what has it irreversibly discarded?</blockquote>
+      <p>Existing evaluation methods - downstream accuracy, linear probing, representation similarity, and transfer learning, measure the <em>utility</em> of a representation but not its internal invariant structure.</p>
+      <p>This work introduces the foundational idea behind the Theory of Representation Invariants (TRI): every representation admits a canonical decomposition into an <strong>Invariant Core</strong>, capturing all transformation-stable information preserved by the encoder, and a complementary <strong>Variant Component</strong>, containing everything non-invariant. The decomposition is representation-centric, independent of downstream tasks or evaluation protocols. Rather than asking what a representation achieves, TRI asks what it preserves.</p>
+    </div>
+
+    <nav class="toc">
+      <a href="#sec1"><span>1 · Introduction and Motivation</span><span class="n">§1</span></a>
+      <a href="#sec2"><span>2 · Problem Formulation</span><span class="n">§2</span></a>
+      <a href="#sec3"><span>3 · Limitations of Existing Evaluation</span><span class="n">§3</span></a>
+      <a href="#sec4"><span>4 · Central Idea</span><span class="n">§4</span></a>
+      <a href="#sec5"><span>5 · Invariant Information Decomposition Theorem</span><span class="n">§5</span></a>
+      <a href="#sec6"><span>6 · Interpretation of the Invariant Core</span><span class="n">§6</span></a>
+      <a href="#sec7"><span>7 · Illustrative Examples</span><span class="n">§7</span></a>
+      <a href="#sec8"><span>8 · Toward an Algebra of Representations</span><span class="n">§8</span></a>
+      <a href="#sec9"><span>9 · Conclusion</span><span class="n">§9</span></a>
+    </nav>
+  </header>
+
+  <!-- 1 -->
+  <section class="sec" id="sec1">
+    <div class="sec-head"><span class="sec-num">§1</span><h2 class="sec-title">Introduction and Motivation</h2></div>
+    <p>Representation learning underlies modern AI systems in vision, language, speech, and multimodal learning. Despite strong empirical performance, the internal structure of learned representations remains poorly understood.</p>
+    <p>Current evaluation paradigms focus on external behavior: downstream accuracy, linear probing, transfer learning performance, representation similarity (CKA / CCA), and retrieval metrics. These are useful, but they answer a narrower question -</p>
+    <blockquote class="callout">How useful is a representation for a task?</blockquote>
+    <p>- rather than the question this work is concerned with:</p>
+    <blockquote class="callout">What invariant information is preserved by the representation itself?</blockquote>
+    <p>To address this, we introduce a transformation-based view of representations.</p>
+    <div class="box" data-label="Informal Definition">
+      <p><strong>Invariant information</strong> refers to properties of the input that remain stable under a class of transformations relevant to the data-generating process- e.g. rotation, color shift, viewpoint changes, or noise.</p>
+    </div>
+    <p>This motivates a structural shift from task-centric evaluation to invariance-centric analysis.</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="sec" id="sec2">
+    <div class="sec-head"><span class="sec-num">§2</span><h2 class="sec-title">Problem Formulation</h2></div>
+
+    <h3>2.1 - Setup</h3>
+    <ul class="varlist">
+      <li><span class="sym">\(X\)</span> input space</li>
+      <li><span class="sym">\(Z\)</span> representation space</li>
+      <li><span class="sym">\(f\)</span> trained encoder, \(f: X \to Z\)</li>
+      <li><span class="sym">\(\mathcal{T}\)</span> set of transformations acting on \(X\)</li>
+    </ul>
+    <p>Each transformation \(T \in \mathcal{T}\) maps inputs as \(x \mapsto T(x)\).</p>
+
+    <h3>2.2 - Representation Invariance</h3>
+    <p>A representation is invariant to a transformation \(T\) if</p>
+    <div class="eq">\[ f(x) = f(Tx) \]</div>
+    <p>or approximately,</p>
+    <div class="eq">\[ d(f(x), f(Tx)) \approx 0 \]</div>
+    <p>This defines an equivalence structure over the input space induced by the encoder.</p>
+
+    <h3>2.3 - Key Question</h3>
+    <div class="box" data-label="Question">
+      <p>Given a representation \(f\), which aspects of \(X\) remain stable under all transformations in \(\mathcal{T}\), as observed through \(f\)?</p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="sec" id="sec3">
+    <div class="sec-head"><span class="sec-num">§3</span><h2 class="sec-title">Limitations of Existing Evaluation</h2></div>
+    <table class="compare">
+      <thead>
+        <tr><th>Method</th><th>Measures</th><th>Limitation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Downstream accuracy</td><td>Task performance</td><td>Task-dependent</td></tr>
+        <tr><td>Linear probing</td><td>Label recoverability</td><td>Limited concept scope</td></tr>
+        <tr><td>CKA / CCA</td><td>Representation similarity</td><td>No invariant semantics</td></tr>
+        <tr><td>Transfer learning</td><td>Task generalization</td><td>Dependent on target task</td></tr>
+        <tr><td>Retrieval metrics</td><td>Instance similarity</td><td>No structural interpretation</td></tr>
+      </tbody>
+    </table>
+    <p>These approaches evaluate <em>behavior</em>, not <em>invariant structure</em>.</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="sec" id="sec4">
+    <div class="sec-head"><span class="sec-num">§4</span><h2 class="sec-title">Central Idea</h2></div>
+    <p>We hypothesize that every representation admits a decomposition into two complementary components: invariant information and variant information.</p>
+
+    <figure class="fig">
+      <svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig1title">
+        <title id="fig1title">Canonical decomposition of an encoder into an invariant core and a variant part</title>
+
+        <!-- scattered input cloud -->
+        <g>
+          <circle cx="70" cy="120" r="5.5" fill="#cfae9c"/>
+          <circle cx="95" cy="90"  r="5.5" fill="#9fb8ab"/>
+          <circle cx="60" cy="170" r="5.5" fill="#cfae9c"/>
+          <circle cx="100" cy="200" r="5.5" fill="#b9ab8c"/>
+          <circle cx="55" cy="230" r="5.5" fill="#9fb8ab"/>
+          <circle cx="100" cy="260" r="5.5" fill="#cfae9c"/>
+          <circle cx="78" cy="290" r="5.5" fill="#b9ab8c"/>
+          <text x="78" y="335" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="var(--ink-soft)">Input space  X</text>
+        </g>
+
+        <path d="M120 200 H 215" stroke="var(--ink-soft)" stroke-width="1.4" marker-end="url(#arrow1)"/>
+
+        <rect x="220" y="150" width="140" height="100" fill="#fff" stroke="var(--rule-strong)" stroke-width="1.4"/>
+        <text x="290" y="195" text-anchor="middle" font-family="Newsreader, serif" font-style="italic" font-size="17" fill="var(--ink)">Encoder</text>
+        <text x="290" y="217" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="var(--ink-soft)">f : X → Z</text>
+
+        <path d="M365 200 H 430" stroke="var(--ink-soft)" stroke-width="1.4" marker-end="url(#arrow1)"/>
+
+        <g>
+          <circle cx="465" cy="170" r="5.5" fill="#cfae9c"/>
+          <circle cx="490" cy="150" r="5.5" fill="#9fb8ab"/>
+          <circle cx="460" cy="210" r="5.5" fill="#b9ab8c"/>
+          <circle cx="495" cy="235" r="5.5" fill="#9fb8ab"/>
+          <circle cx="470" cy="255" r="5.5" fill="#cfae9c"/>
+          <text x="478" y="290" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="var(--ink-soft)">f(X)</text>
+        </g>
+
+        <path d="M520 200 H 555 M555 200 C 575 200 575 90 600 90 M555 200 C 575 200 575 310 600 310"
+              fill="none" stroke="var(--ink-soft)" stroke-width="1.4" marker-end="url(#arrow1)"/>
+        <text x="565" y="200" text-anchor="left" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--accent)">f ≅ (φ_f, ν)</text>
+
+        <rect x="605" y="58" width="145" height="64" fill="var(--accent-2-soft)" stroke="var(--accent-2)" stroke-width="1.5"/>
+        <text x="677" y="84" text-anchor="middle" font-family="Newsreader, serif" font-weight="600" font-size="15" fill="var(--accent-2)">Invariant Core</text>
+        <text x="677" y="104" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="var(--accent-2)">φ_f</text>
+
+        <rect x="605" y="278" width="145" height="64" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="677" y="304" text-anchor="middle" font-family="Newsreader, serif" font-weight="600" font-size="15" fill="var(--accent)">Variant Part</text>
+        <text x="677" y="324" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="var(--accent)">ν</text>
+
+        <defs>
+          <marker id="arrow1" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/>
+          </marker>
+        </defs>
+      </svg>
+      <figcaption>Figure 1 - An encoder \(f\) maps inputs in \(X\) to a mixed representation \(f(X)\). The canonical decomposition separates this into a transformation-stable invariant core \(\phi_f\) and a residual variant part \(\nu\).</figcaption>
+    </figure>
+
+    <p>The <strong>Invariant Core</strong> (\(\phi_f\)) captures all transformation-stable information encoded by \(f\). The <strong>Variant Component</strong> (\(\nu\)) captures the residual, non-invariant information.</p>
+  </section>
+
+  <!-- 5 -->
+  <section class="sec" id="sec5">
+    <div class="sec-head"><span class="sec-num">§5</span><h2 class="sec-title">Main Result - Invariant Information Decomposition Theorem</h2></div>
+    <p>For every measurable representation</p>
+    <div class="eq">\[ f: X \to Z \]</div>
+    <p>there exists a representation \(\phi_f\), called the <strong>Invariant Core</strong>, such that:</p>
+
+    <div class="box theorem" data-label="Theorem">
+      <ol class="results">
+        <li><b>Factorization.</b> The representation factors through the invariant core.</li>
+        <li><b>Maximality.</b> Any invariant function of \(X\) that factors through \(f\) also factors through \(\phi_f\).</li>
+        <li><b>Canonical decomposition.</b> \( f \cong (\phi_f, \nu) \), where \(\nu\) contains all remaining variant information.</li>
+      </ol>
+    </div>
+
+    <div class="box" data-label="Uniqueness">
+      <p>The decomposition is unique up to equivalence under measurable isomorphisms.</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="sec" id="sec6">
+    <div class="sec-head"><span class="sec-num">§6</span><h2 class="sec-title">Interpretation of the Invariant Core</h2></div>
+    <p>The invariant core \(\phi_f\) is the coarsest representation that preserves all transformation-stable information encoded by \(f\). It induces an equivalence relation over inputs:</p>
+    <blockquote class="callout">Two inputs are equivalent if they map to the same invariant representation under \(\phi_f\).</blockquote>
+
+    <figure class="fig">
+      <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fig2title">
+        <title id="fig2title">Partition of the input space into invariance classes</title>
+
+        <rect x="10" y="10" width="740" height="260" fill="none" stroke="var(--rule-strong)" stroke-width="1.4" stroke-dasharray="3 4"/>
+        <text x="28" y="34" font-family="JetBrains Mono, monospace" font-size="12" fill="var(--ink-soft)">Input space X</text>
+
+        <!-- class 1 -->
+        <path d="M70 70 C 30 130, 50 200, 130 220 C 200 235, 230 150, 190 100 C 160 60, 110 50, 70 70 Z"
+              fill="var(--accent-2-soft)" stroke="var(--accent-2)" stroke-width="1.4"/>
+        <circle cx="95" cy="110" r="5" fill="var(--accent-2)"/>
+        <circle cx="130" cy="90" r="5" fill="var(--accent-2)"/>
+        <circle cx="150" cy="140" r="5" fill="var(--accent-2)"/>
+        <circle cx="110" cy="170" r="5" fill="var(--accent-2)"/>
+        <text x="120" y="245" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--accent-2)">[x]&#8321; → φ_f(x)&#8321;</text>
+
+        <!-- class 2 -->
+        <path d="M300 50 C 260 90, 270 170, 340 200 C 410 228, 460 170, 450 110 C 442 60, 350 20, 300 50 Z"
+              fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.4"/>
+        <circle cx="330" cy="95" r="5" fill="var(--accent)"/>
+        <circle cx="370" cy="75" r="5" fill="var(--accent)"/>
+        <circle cx="410" cy="110" r="5" fill="var(--accent)"/>
+        <circle cx="380" cy="150" r="5" fill="var(--accent)"/>
+        <circle cx="335" cy="150" r="5" fill="var(--accent)"/>
+        <text x="375" y="225" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--accent)">[x]&#8322; → φ_f(x)&#8322;</text>
+
+        <!-- class 3 -->
+        <path d="M540 90 C 510 130, 530 200, 600 215 C 670 228, 710 170, 690 120 C 672 75, 580 55, 540 90 Z"
+              fill="#efe9da" stroke="var(--rule-strong)" stroke-width="1.4"/>
+        <circle cx="565" cy="130" r="5" fill="var(--ink-soft)"/>
+        <circle cx="600" cy="110" r="5" fill="var(--ink-soft)"/>
+        <circle cx="640" cy="135" r="5" fill="var(--ink-soft)"/>
+        <circle cx="615" cy="175" r="5" fill="var(--ink-soft)"/>
+        <text x="610" y="240" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--ink-soft)">[x]&#8323; → φ_f(x)&#8323;</text>
+      </svg>
+      <figcaption>Figure 2 - \(\phi_f\) partitions \(X\) into invariance classes: dots are individual inputs, shaded regions are sets of inputs the encoder treats as identical. Each class collapses to a single point \(\phi_f(x)\) in the invariant core.</figcaption>
+    </figure>
+
+    <p>Thus, the invariant core defines a partition of the input space into invariance classes induced by the representation.</p>
+  </section>
+
+  <!-- 7 -->
+  <section class="sec" id="sec7">
+    <div class="sec-head"><span class="sec-num">§7</span><h2 class="sec-title">Illustrative Examples <span style="font-style:italic;font-weight:400;font-size:0.55em;color:var(--ink-soft);"></span></h2></div>
+
+    <p>We ground the abstract decomposition in two failure modes that are well documented in medical image analysis: <strong>stain variation</strong> in digital pathology and <strong>acquisition-orientation variation</strong> in radiology. Both are nuisance transformations a clinically useful encoder is expected to absorb.</p>
+
+    <div class="examples">
+      <div class="excard">
+        <h4>7.1 - Stain-Invariant Encoder (Histopathology)</h4>
+        <svg viewBox="0 0 320 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The same H&amp;E tissue section under three different stain calibrations mapping to the same representation point">
+          <!-- slide 1: standard H&E -->
+          <g transform="translate(10,14)">
+            <circle cx="44" cy="44" r="44" fill="#f1d9e4" stroke="var(--rule-strong)" stroke-width="1.2"/>
+            <circle cx="30" cy="32" r="5" fill="#7a3a73"/>
+            <circle cx="52" cy="26" r="4.5" fill="#7a3a73"/>
+            <circle cx="60" cy="48" r="5" fill="#7a3a73"/>
+            <circle cx="36" cy="56" r="4" fill="#7a3a73"/>
+            <circle cx="48" cy="64" r="4.5" fill="#7a3a73"/>
+            <circle cx="22" cy="50" r="3.5" fill="#7a3a73"/>
+          </g>
+          <!-- slide 2: pale / under-stained -->
+          <g transform="translate(116,14)">
+            <circle cx="44" cy="44" r="44" fill="#fbeef2" stroke="var(--rule-strong)" stroke-width="1.2"/>
+            <circle cx="30" cy="32" r="5" fill="#c98fc0"/>
+            <circle cx="52" cy="26" r="4.5" fill="#c98fc0"/>
+            <circle cx="60" cy="48" r="5" fill="#c98fc0"/>
+            <circle cx="36" cy="56" r="4" fill="#c98fc0"/>
+            <circle cx="48" cy="64" r="4.5" fill="#c98fc0"/>
+            <circle cx="22" cy="50" r="3.5" fill="#c98fc0"/>
+          </g>
+          <!-- slide 3: deep / over-stained -->
+          <g transform="translate(222,14)">
+            <circle cx="44" cy="44" r="44" fill="#d9bcd6" stroke="var(--rule-strong)" stroke-width="1.2"/>
+            <circle cx="30" cy="32" r="5" fill="#4a2456"/>
+            <circle cx="52" cy="26" r="4.5" fill="#4a2456"/>
+            <circle cx="60" cy="48" r="5" fill="#4a2456"/>
+            <circle cx="36" cy="56" r="4" fill="#4a2456"/>
+            <circle cx="48" cy="64" r="4.5" fill="#4a2456"/>
+            <circle cx="22" cy="50" r="3.5" fill="#4a2456"/>
+          </g>
+          <path d="M40 96 L 150 122 L 260 96" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#arrow2)"/>
+          <circle cx="150" cy="132" r="6" fill="var(--accent-2)"/>
+          <text x="150" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent-2)">φ_f(x) — one point</text>
+          <defs><marker id="arrow2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--ink-soft)"/></marker></defs>
+        </svg>
+        <p class="exnote">The same tissue section under standard, pale, and deep H&amp;E stain calibration - a known source of cross-scanner and cross-lab variation, collapses to a single invariant point. <strong>Inference:</strong> invariant to stain intensity and hue; preserves nuclear arrangement and tissue architecture.</p>
+      </div>
+
+      <div class="excard">
+        <h4>7.2 - Orientation-Invariant Encoder (Radiology)</h4>
+        <svg viewBox="0 0 320 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The same chest radiograph at three acquisition orientations mapping to the same representation point">
+          <!-- upright PA -->
+          <g transform="translate(20,14)">
+            <path d="M44 4 C 24 4, 10 22, 12 46 C 13 64, 22 78, 44 80 C 66 78, 75 64, 76 46 C 78 22, 64 4, 44 4 Z" fill="#dfe3e6" stroke="#9aa3a8" stroke-width="1.2"/>
+            <path d="M44 12 V 72" stroke="#9aa3a8" stroke-width="1.4"/>
+            <ellipse cx="28" cy="44" rx="13" ry="22" fill="#aeb7bc"/>
+            <ellipse cx="60" cy="44" rx="13" ry="22" fill="#aeb7bc"/>
+          </g>
+          <!-- slight rotation -->
+          <g transform="translate(125,18) rotate(12 44 40)">
+            <path d="M44 4 C 24 4, 10 22, 12 46 C 13 64, 22 78, 44 80 C 66 78, 75 64, 76 46 C 78 22, 64 4, 44 4 Z" fill="#dfe3e6" stroke="#9aa3a8" stroke-width="1.2"/>
+            <path d="M44 12 V 72" stroke="#9aa3a8" stroke-width="1.4"/>
+            <ellipse cx="28" cy="44" rx="13" ry="22" fill="#aeb7bc"/>
+            <ellipse cx="60" cy="44" rx="13" ry="22" fill="#aeb7bc"/>
+          </g>
+          <!-- rotated 180 / AP supine -->
+          <g transform="translate(230,14) rotate(180 44 40)">
+            <path d="M44 4 C 24 4, 10 22, 12 46 C 13 64, 22 78, 44 80 C 66 78, 75 64, 76 46 C 78 22, 64 4, 44 4 Z" fill="#dfe3e6" stroke="#9aa3a8" stroke-width="1.2"/>
+            <path d="M44 12 V 72" stroke="#9aa3a8" stroke-width="1.4"/>
+            <ellipse cx="28" cy="44" rx="13" ry="22" fill="#aeb7bc"/>
+            <ellipse cx="60" cy="44" rx="13" ry="22" fill="#aeb7bc"/>
+          </g>
+          <path d="M40 96 L 150 122 L 260 96" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" marker-end="url(#arrow3)"/>
+          <circle cx="150" cy="132" r="6" fill="var(--accent)"/>
+          <text x="150" y="148" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)">φ_f(x) — one point</text>
+          <defs><marker id="arrow3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--ink-soft)"/></marker></defs>
+        </svg>
+        <p class="exnote">The same chest radiograph at upright, tilted, and rotated patient positioning - a routine acquisition artifact, collapses to a single invariant point. <strong>Inference:</strong> invariant to patient rotation and framing; preserves lung field anatomy and density.</p>
+      </div>
+    </div>
+
+    <h3>7.3 - Benchmark Equivalence vs. Structural Difference</h3>
+    <p>Consider two tumor-malignancy classifiers, A and B, trained on the same histopathology cohort and reporting comparable held-out AUC. Aggregate performance alone cannot tell them apart.</p>
+
+    <figure class="fig compare-fig">
+      <div class="compare-row">
+        <span class="compare-label">Traditional evaluation</span>
+        <div class="compare-equal">
+          <span class="rep-chip">Classifier A</span>
+          <span class="eq-sign">≈</span>
+          <span class="rep-chip">Classifier B</span>
+        </div>
+      </div>
+
+      <div class="compare-arrow">
+        <svg class="icon-arrow" viewBox="0 0 28 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M14 2 V22" stroke="var(--rule-strong)" stroke-width="1.6"/><path d="M6 16 L14 26 L22 16" fill="none" stroke="var(--rule-strong)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="compare-label">TRI analysis</span>
+      </div>
+
+      <div class="compare-split">
+        <div class="rep-card">
+          <h5>Classifier A</h5>
+          <ul class="checklist">
+            <li class="yes">Nuclear morphology</li>
+            <li class="yes">Tissue architecture</li>
+            <li class="no">Stain intensity</li>
+          </ul>
+        </div>
+        <div class="rep-card">
+          <h5>Classifier B</h5>
+          <ul class="checklist">
+            <li class="yes">Stain intensity</li>
+            <li class="yes">Local texture</li>
+            <li class="no">Slide rotation</li>
+          </ul>
+        </div>
+      </div>
+      <figcaption>Figure 3 - Classifier A has learned to ignore stain variation while remaining sensitive to nuclear morphology; Classifier B has learned the opposite trade-off. Matched AUC hides this difference, but it predicts how each model will fail in deployment - A on a poorly calibrated scanner, B on a rotated or cropped slide.</figcaption>
+    </figure>
+
+    <p>Although performance is similar, TRI distinguishes representations by their invariant content, and that content, not the benchmark score, determines which deployment conditions each model can be trusted under.</p>
+  </section>
+
+  <!-- 8 -->
+  <section class="sec" id="sec8">
+    <div class="sec-head"><span class="sec-num">§8</span><h2 class="sec-title">Toward an Algebra of Representations</h2></div>
+    <p>The invariant core is the first component of a broader theoretical framework. Subsequent releases of TRI develop:</p>
+    <div class="roadmap">
+      <span class="chip">canonical representations</span>
+      <span class="chip">representation factorization</span>
+      <span class="chip">invariant lattices</span>
+      <span class="chip">kernel duality</span>
+      <span class="chip">invariant comparison metrics</span>
+      <span class="chip">universal invariance principles</span>
+      <span class="chip">theoretical limits of representation learning</span>
+    </div>
+    <p style="margin-top:20px;">Together, these components aim to establish an algebraic theory of learned representations grounded in invariance structure.</p>
+  </section>
+
+  <!-- 9 -->
+  <section class="sec" id="sec9">
+    <div class="sec-head"><span class="sec-num">§9</span><h2 class="sec-title">Conclusion</h2></div>
+    <div class="closing">
+      <div class="eyebrow2">Closing Statement</div>
+      <blockquote>A representation should be understood by the invariant information it preserves, not only by the tasks it solves.</blockquote>
+      <p>Representation learning has largely been evaluated through downstream behavior. TRI proposes a complementary perspective, grounded in the claim that every representation admits a canonical invariant core capturing its transformation-stable information.</p>
+      <p>This release introduces the foundational decomposition and motivates a broader mathematical framework for studying learned representations through invariance structure.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>TRI - Theory of Representation Invariants</span>
+    <span>Release I - Invariant Information Decomposition</span>
+  </footer>
+
+</div>
+
+<a href="#top" class="totop" id="totop" aria-label="Back to top">↑</a>
+
+<script>
+  const totop = document.getElementById('totop');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 600) totop.classList.add('show');
+    else totop.classList.remove('show');
+  });
+</script>
+
+</body>
+</html>
